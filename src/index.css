@@ -368,3 +368,25 @@ h1, h2, h3, h4, h5, h6 {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1.0); }
 }
+
+/* Table Hover Style */
+.interactive-row {
+  transition: background-color 0.15s ease;
+}
+.interactive-row:hover {
+  background-color: var(--bg-glass-hover) !important;
+}
+
+/* Expand Icon Hover Trigger */
+.expand-trigger {
+  position: relative;
+}
+.expand-trigger .expand-icon {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.expand-trigger:hover .expand-icon {
+  opacity: 1;
+  transform: scale(1);
+}

@@ -71,7 +71,8 @@ export default function ChatArea({
               display: 'flex',
               flexDirection: 'column',
               alignItems: isUser ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
+              maxWidth: isUser ? '85%' : '100%',
+              width: isUser ? 'auto' : '100%',
               alignSelf: isUser ? 'flex-end' : 'flex-start',
               animation: 'fadeIn 0.3s ease-out'
             }}>
@@ -80,13 +81,14 @@ export default function ChatArea({
               <div style={{
                 display: 'flex',
                 gap: '12px',
-                flexDirection: isUser ? 'row-reverse' : 'row',
-                alignItems: 'flex-start'
+                flexDirection: isUser ? 'row-reverse' : 'column',
+                alignItems: 'flex-start',
+                width: '100%'
               }}>
                 {/* Avatar Icon */}
                 <div style={{
-                  width: '36px',
-                  height: '36px',
+                  width: isUser ? '36px' : '28px',
+                  height: isUser ? '36px' : '28px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -94,23 +96,26 @@ export default function ChatArea({
                   flexShrink: 0,
                   background: isUser ? 'var(--primary-gradient)' : 'var(--bg-glass)',
                   border: isUser ? 'none' : '1px solid var(--border-glass)',
-                  boxShadow: isUser ? '0 4px 10px rgba(99, 102, 241, 0.25)' : 'none'
+                  boxShadow: isUser ? '0 4px 10px rgba(99, 102, 241, 0.25)' : 'none',
+                  marginBottom: isUser ? '0px' : '4px'
                 }}>
-                  {isUser ? <User size={16} style={{ color: '#fff' }} /> : <Cpu size={16} style={{ color: 'var(--primary)' }} />}
+                  {isUser ? <User size={16} style={{ color: '#fff' }} /> : <Cpu size={14} style={{ color: 'var(--primary)' }} />}
                 </div>
 
                 {/* Message Bubble Card */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: isUser ? 'auto' : '100%' }}>
                   <div style={{
                     padding: '14px 18px',
-                    borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 16px',
                     background: isUser ? 'var(--primary-gradient)' : 'var(--bg-glass)',
                     border: isUser ? 'none' : '1px solid var(--border-glass)',
                     color: isUser ? '#fff' : 'var(--text-primary)',
                     boxShadow: isUser ? 'var(--shadow-glow)' : 'var(--shadow-panel)',
                     lineHeight: '1.6',
                     fontSize: '14px',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}>
                     
                     {/* Render text with Markdown formatting if it's agent */}
@@ -193,8 +198,9 @@ export default function ChatArea({
               {/* Expandable step trace viewer */}
               {!isUser && isTraceExpanded && msg.steps && (
                 <div style={{
-                  width: 'calc(100% - 48px)',
-                  marginLeft: '48px',
+                  width: '100%',
+                  marginLeft: '0px',
+                  marginTop: '12px',
                   animation: 'fadeIn 0.25s ease-out'
                 }}>
                   <TraceDrawer msg={msg} />
@@ -209,31 +215,36 @@ export default function ChatArea({
       {loading && (
         <div style={{
           display: 'flex',
-          gap: '12px',
-          alignSelf: 'flex-start',
-          maxWidth: '85%'
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          maxWidth: '100%',
+          width: '100%',
+          animation: 'fadeIn 0.3s ease-out'
         }}>
           <div style={{
-            width: '36px',
-            height: '36px',
+            width: '28px',
+            height: '28px',
             borderRadius: '50%',
             background: 'var(--bg-glass)',
             border: '1px solid var(--border-glass)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            flexShrink: 0
+            flexShrink: 0,
+            marginBottom: '4px'
           }}>
-            <Cpu size={16} style={{ color: 'var(--primary)' }} />
+            <Cpu size={14} style={{ color: 'var(--primary)' }} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
             <div style={{
               padding: '12px 18px',
-              borderRadius: '16px 16px 16px 4px',
+              borderRadius: '16px 16px 16px 16px',
               background: 'var(--bg-glass)',
               border: '1px solid var(--border-glass)',
-              boxShadow: 'var(--shadow-panel)'
+              boxShadow: 'var(--shadow-panel)',
+              width: '100%',
+              boxSizing: 'border-box'
             }}>
               <div className="typing-indicator">
                 <span className="typing-dot"></span>

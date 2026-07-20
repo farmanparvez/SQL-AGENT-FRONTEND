@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Play, CheckCircle, AlertTriangle, XCircle, Code, Table, Cpu, Copy, Check, Download } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Play, CheckCircle, AlertTriangle, XCircle, Code, Table, Cpu, Copy, Check, Download, Maximize2 } from 'lucide-react';
 
 // Simple regex-based SQL syntax highlighter
 function highlightSQL(sql) {
@@ -14,8 +14,8 @@ function highlightSQL(sql) {
   highlighted = highlighted.replace(keywords, '<span style="color:#4f46e5; font-weight:600;">$1</span>');
   // Highlight strings
   highlighted = highlighted.replace(/('[^']*')/g, '<span style="color:#fb7185;">$1</span>');
-  // Highlight numeric values
-  highlighted = highlighted.replace(/\b(\d+)\b/g, '<span style="color:#34d399;">$1</span>');
+  // Highlight numeric values (ignoring those inside HTML tags/attributes)
+  highlighted = highlighted.replace(/\b(\d+)\b(?![^<]*>)/g, '<span style="color:#34d399;">$1</span>');
   // Highlight comments
   highlighted = highlighted.replace(/(--.*)/g, '<span style="color:#6b7280; font-style:italic;">$1</span>');
   
@@ -31,6 +31,20 @@ export default function TraceDrawer({ msg }) {
   const [filterQuery, setFilterQuery] = useState('');
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
+  const [activePopover, setActivePopover] = useState(null); // { content: string, title: string, colKey: string, rowIdx: number }
+
+  const handleCellClick = (e, valStr, key, rowIdx) => {
+    if (activePopover && activePopover.rowIdx === rowIdx && activePopover.colKey === key) {
+      setActivePopover(null);
+    } else {
+      setActivePopover({
+        content: valStr,
+        title: key,
+        colKey: key,
+        rowIdx
+      });
+    }
+  };
 
   const { steps, generated_sql, results, total_results_count, validation, intent, error_log } = msg;
 
@@ -435,7 +449,7 @@ export default function TraceDrawer({ msg }) {
 
         {/* Results Table Tab */}
         {activeTab === 'table' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
             {results && results.length > 0 ? (
               <>
                 {/* Results Explorer Toolbar */}
@@ -528,15 +542,18 @@ export default function TraceDrawer({ msg }) {
 
                 {/* Table display */}
                 {slicedResults.length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
+                  <div style={{ 
+                    overflowX: 'auto', 
+                    position: 'relative',
+                    minHeight: (slicedResults.length > 0 && slicedResults.length <= 2) ? '250px' : 'auto'
+                  }}>
                     <table style={{
                       width: '100%',
                       borderCollapse: 'collapse',
                       fontSize: '13px',
                       textAlign: 'left',
                       border: '1px solid var(--border-glass)',
-                      borderRadius: '8px',
-                      overflow: 'hidden'
+                      borderRadius: '8px'
                     }}>
                       <thead>
                         <tr style={{
@@ -553,7 +570,8 @@ export default function TraceDrawer({ msg }) {
                                  fontWeight: 600,
                                  cursor: 'pointer',
                                  userSelect: 'none',
-                                 transition: 'background 0.2s'
+                                 transition: 'background 0.2s',
+                                 minWidth: '120px'
                                }}
                                className="sortable-header"
                                title={`Click to sort by ${key}`}
@@ -572,23 +590,130 @@ export default function TraceDrawer({ msg }) {
                       </thead>
                       <tbody>
                         {slicedResults.map((row, idx) => (
-                          <tr key={idx} style={{
-                            borderBottom: '1px solid var(--border-glass)',
-                            background: idx % 2 === 0 ? 'transparent' : 'var(--bg-glass)'
-                          }}>
-                            {Object.values(row).map((val, cellIdx) => (
-                              <td key={cellIdx} style={{
-                                padding: '10px 16px',
-                                color: 'var(--text-primary)',
-                                fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit'
-                              }}>
-                                {val === null || val === undefined ? (
-                                  <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>null</span>
-                                ) : (
-                                  String(val)
-                                )}
-                              </td>
-                            ))}
+                          <tr 
+                            key={idx} 
+                            className="interactive-row"
+                            style={{
+                              borderBottom: '1px solid var(--border-glass)',
+                              background: idx % 2 === 0 ? 'transparent' : 'var(--bg-glass)'
+                            }}
+                          >
+                            {Object.entries(row).map(([key, val], cellIdx) => {
+                               const valStr = val === null || val === undefined ? '' : String(val);
+                               const isLong = valStr.length > 40;
+                               const isPopoverOpen = activePopover && activePopover.rowIdx === idx && activePopover.colKey === key;
+
+                               return (
+                                 <td 
+                                   key={cellIdx} 
+                                   onClick={(e) => isLong && handleCellClick(e, valStr, key, idx)}
+                                   className={isLong ? "expand-trigger" : ""}
+                                   style={{
+                                     padding: '10px 16px',
+                                     color: 'var(--text-primary)',
+                                     fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit',
+                                     minWidth: '120px',
+                                     maxWidth: '300px',
+                                     position: 'relative',
+                                     overflow: 'visible',
+                                     cursor: isLong ? 'pointer' : 'default',
+                                     background: isLong && isPopoverOpen ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                                     transition: 'background-color 0.15s ease'
+                                   }} 
+                                 >
+                                   {val === null || val === undefined ? (
+                                     <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>null</span>
+                                   ) : (
+                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'block' }}>
+                                         {valStr}
+                                       </span>
+                                       {isLong && (
+                                         <span className="expand-icon" style={{
+                                           display: 'inline-flex',
+                                           alignItems: 'center',
+                                           justifyContent: 'center',
+                                           background: 'var(--primary-gradient)',
+                                           borderRadius: '4px',
+                                           padding: '4px',
+                                           color: '#fff',
+                                           boxShadow: 'var(--shadow-glow)',
+                                           flexShrink: 0
+                                         }}>
+                                           <Maximize2 size={10} />
+                                         </span>
+                                       )}
+                                     </div>
+                                   )}
+                                   
+                                   {/* Floating popover locally attached to cell */}
+                                   {isLong && isPopoverOpen && (() => {
+                                     const isNearBottom = slicedResults.length > 2 && (slicedResults.length - idx <= 5);
+                                     return (
+                                       <div 
+                                         style={{
+                                           position: 'absolute',
+                                           top: isNearBottom ? 'auto' : '100%',
+                                           bottom: isNearBottom ? '100%' : 'auto',
+                                           left: 0,
+                                           width: '320px',
+                                           background: 'var(--bg-glass)',
+                                           border: '1px solid var(--border-glass-glow)',
+                                           boxShadow: 'var(--shadow-glow), 0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                           borderRadius: '8px',
+                                           padding: '12px 16px',
+                                           color: 'var(--text-primary)',
+                                           fontSize: '13px',
+                                           lineHeight: '1.5',
+                                           whiteSpace: 'normal',
+                                           wordBreak: 'break-word',
+                                           zIndex: 1000,
+                                           backdropFilter: 'blur(12px)',
+                                           marginTop: isNearBottom ? '0px' : '6px',
+                                           marginBottom: isNearBottom ? '6px' : '0px',
+                                           animation: 'fadeIn 0.1s ease-out'
+                                         }}
+                                         onClick={e => e.stopPropagation()}
+                                       >
+                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                           <div style={{
+                                             fontWeight: 600,
+                                             color: 'var(--primary)',
+                                             fontSize: '11px',
+                                             textTransform: 'uppercase'
+                                           }}>
+                                             {activePopover.title}
+                                           </div>
+                                           <button 
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setActivePopover(null);
+                                             }}
+                                             style={{
+                                               background: 'none',
+                                               border: 'none',
+                                               color: 'var(--text-secondary)',
+                                               cursor: 'pointer',
+                                               display: 'flex',
+                                               alignItems: 'center',
+                                               justifyContent: 'center',
+                                               padding: '2px',
+                                               borderRadius: '50%',
+                                               transition: 'background 0.2s'
+                                             }}
+                                             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-glass)'}
+                                             onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                           >
+                                             <XCircle size={14} style={{ color: 'var(--text-secondary)' }} />
+                                           </button>
+                                         </div>
+                                         {activePopover.content}
+                                       </div>
+                                     );
+                                   })()}
+                                 </td>
+                               );
+                             })}
                           </tr>
                         ))}
                       </tbody>
